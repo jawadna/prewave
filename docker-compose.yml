@@ -1,0 +1,41 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:7
+    container_name: redis-cache
+    ports:
+      - "6379:6379"
+    restart: always
+
+  postgres-db:
+    image: postgres:16
+    container_name: postgres-db
+    restart: always
+    environment:
+      POSTGRES_USER: prewave-user
+      POSTGRES_PASSWORD: prewave-pass
+      POSTGRES_DB: prewave_service
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  prewave-service:
+    depends_on:
+      - postgres-db
+      - redis
+    build: .
+    container_name: prewave-service
+    restart: always
+    ports:
+      - "8080:8080"
+      - "5005:5005"
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres-db:5432/prewave_service"
+      SPRING_DATASOURCE_USERNAME: "prewave-user"
+      SPRING_DATASOURCE_PASSWORD: "prewave-pass"
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.postgresql.Driver"
+    command: ["--spring.redis.host=redis", "--spring.redis.port=6379"]
+
+volumes:
+  pgdata:
